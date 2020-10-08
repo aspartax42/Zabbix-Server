@@ -11,17 +11,21 @@ tput setaf 7; read -p "Entrer le mot de passe zabbix de la base de données: " Z
 
 tput setaf 2; echo ""
 
-# Installation apache2 et php
-apt install apache2 php php-mysql php-mysqlnd php-ldap php-bcmath php-mbstring php-gd php-pdo php-xml libapache2-mod-php
-systemctl restart apache2
-
-# Installation MariaDB
-apt install mariadb-server mariadb-client
-
 # Ajout de la variable PATH qui peux poser problème
 export PATH=$PATH:/usr/local/sbin
 export PATH=$PATH:/usr/sbin
 export PATH=$PATH:/sbin
+
+# Récupération de la dernière version de Zabbix
+cd /tmp
+wget https://repo.zabbix.com/zabbix/5.0/debian/pool/main/z/zabbix-release/zabbix-release_5.0-1+$(lsb_release -sc)_all.deb
+dpkg -i zabbix-release_5.0-1+$(lsb_release -sc)_all.deb
+apt update
+apt -y install zabbix-server-mysql zabbix-frontend-php zabbix-apache-conf zabbix-agent
+
+
+# Installation de MariaDB
+apt -y install mariadb-server
 
 # Changement du mdp de la base de données MySQL
 mysql_secure_installation <<EOF
@@ -34,7 +38,6 @@ y
 y
 EOF
 
-
 # Configuration de la base de données
 mysql -uroot -p'$ROOT_DB_PASS' -e "drop database if exists zabbix;"
 mysql -uroot -p'$ROOT_DB_PASS' -e "drop user if exists zabbix@localhost;"
@@ -42,20 +45,39 @@ mysql -uroot -p'$ROOT_DB_PASS' -e "create database zabbix character set utf8 col
 mysql -uroot -p'$ROOT_DB_PASS' -e "grant all on zabbix.* to 'zabbix'@'%' identified by '"$ZABBIX_DB_PASS"' with grant option;"
 
 
-# Récupération de la dernière version de Zabbix
-
-cd /tmp
-wget https://repo.zabbix.com/zabbix/5.0/debian/pool/main/z/zabbix-release/zabbix-release_5.0-1%2Bbuster_all.deb
-dpkg -i zabbix-release_5.0-1+buster_all.deb
-
-
-# Installation du serveur Zabbix, agent, interface web
-
-apt -y install zabbix-server-mysql zabbix-frontend-php zabbix-agent
-
 
 # Ajout de la table SQL dans notre DB zabbix_proxy
 
 mysql -uroot -p'$ROOT_DB_PASS' -D zabbix -e "set global innodb_strict_mode='OFF';"
-zcat /usr/share/doc/zabbix-server-mysql/create.sql.gz |  mysql -u zabbix --password=$ZABBIX_DB_PASS zabbix
+zcat /usr/share/doc/zabbix-server-mysql*/create.sql.gz |  mysql -u zabbix --password=$ZABBIX_DB_PASS zabbix
 mysql -uroot -p'$ROOT_DB_PASS' -D zabbix -e "set global innodb_strict_mode='ON';"
+
+
+# Ajout du mot de passe Zabbix dans le fichier de conf
+echo "DBPassword="$ZABBIX_DB_PASS"" >> /etc/zabbix/zabbix_server.conf
+
+systemctl restart zabbix-server zabbix-agent 
+systemctl enable zabbix-server zabbix-agent
+
+
+# Configuration de Zabbix Frontend
+
+echo "php_value date.timezone Europe/Paris" >> /etc/zabbix/apache.conf
+
+systemctl restart apache2
+systemctl enable apache2
+
+ip = ip a
+
+clear
+echo "-------------------------------------------------"
+tput bold; tput setaf 7; echo "       => Installation terminée <=       "
+tput setaf 7; echo ""
+tput setaf 7; echo "URL du serveur Zabbix: http://"$ip"/zabbix"
+tput setaf 7; echo ""
+
+
+tput setaf 7; echo ""
+tput setaf 7; echo ""
+tput bold; tput setaf 6; echo "       By Lilian COLLARD       "
+tput setaf 2; echo ""
