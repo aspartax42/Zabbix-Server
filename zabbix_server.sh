@@ -100,6 +100,8 @@ dpkg -i grafana_5.4.2_amd64.deb
 systemctl enable  grafana-server
 systemctl start  grafana-server
 grafana-cli plugins install alexanderzobnin-zabbix-app
+grafana-cli plugins install simpod-json-datasource
+grafana-cli plugins install grafana-simple-json-datasource
 systemctl restart grafana-server
 
 
