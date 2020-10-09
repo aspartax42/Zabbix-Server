@@ -88,9 +88,9 @@ systemctl enable apache2
 
 
 # Grafana
-wget https://dl.grafana.com/oss/release/grafana_5.4.2_amd64.deb
+wget https://dl.grafana.com/oss/release/grafana_7.2.1_amd64.deb
 apt install -y adduser libfontconfig
-dpkg -i grafana_5.4.2_amd64.deb
+dpkg -i grafana_7.2.1_amd64.deb
 systemctl enable  grafana-server
 systemctl start  grafana-server
 grafana-cli plugins install alexanderzobnin-zabbix-app
